@@ -67,16 +67,17 @@ def load(vocab: Alphabet) -> Tuple[nn.Module, Dict]:
 
 def load_model():
     model_url_path = 'https://dl.fbaipublicfiles.com/fair-esm/examples/lm_design/linear_projection_model.pt'
-    local_model_path = hydra.utils.to_absolute_path('./linear_projection_model.pt')
+    local_model_path = hydra.utils.to_absolute_path('./x-linear_projection_model.pt')
     if not os.path.exists(local_model_path):
         logger.info(f'Downloading linear projection model from {model_url_path} to {local_model_path}')
         os.system(f'wget {model_url_path} -O {local_model_path}')
         
     # load model_path
-    state = torch.load(local_model_path, map_location='cpu')
+    model_state = torch.load(local_model_path, map_location='cpu', weights_only=True)
+
     # chkpt_args = state['cfg']
     model = LinearProjectionDistogramModel()
-    model_state = state['model']
+    #model_state = state['model']
     model.load_state_dict(model_state)
     from esm.pretrained import esm2_t33_650M_UR50D
     base_model, alphabet = esm2_t33_650M_UR50D()

@@ -216,7 +216,13 @@ def load_model_and_alphabet_core(model_name, model_data, regression_data=None):
                 "Regression weights not found, predicting contacts will not produce correct results."
             )
 
-    model.load_state_dict(model_state, strict=regression_data is not None)
+    # debug - lezhang.thu
+    base_missing, base_unexpected = model.load_state_dict(model_state, strict=False)
+    # print('base_missing: {}'.format(base_missing))
+    # print('base_unexpected: {}'.format(base_unexpected))
+    assert all('lora' in x for x in base_missing)
+    assert len(base_unexpected) == 0
+    # model.load_state_dict(model_state, strict=regression_data is not None)
 
     return model, alphabet
 
