@@ -134,7 +134,7 @@ class Designer:
 
     def run_from_cfg(self):
         import pandas as pd
-        print(os.getcwd())
+        logger.info(os.getcwd())
 
         # Read the CSV file
         df = pd.read_csv(
@@ -153,7 +153,7 @@ class Designer:
             leave_unmasked_prob=0.1,
             random_token_prob=0.1,
         )
-        num_epochs = 128
+        num_epochs = 512
         batch_size = 1
         grad_acc = 16
         train_dataloader = torch.utils.data.DataLoader(ds,
@@ -192,8 +192,9 @@ class Designer:
                 #print('logits.shape: {}'.format(logits.shape))
                 x = xent(logits, tgt)
                 if random.uniform(0, 1) < 1e-2:
-                    print('epoch: {: <5}, idx: {: <5}, loss: {: .3f}'.format(
-                        e, idx, x.item()))
+                    logger.info(
+                        'epoch: {: <5}, idx: {: <5}, loss: {: .3f}'.format(
+                            e, idx, x.item()))
                 loss = x / grad_acc
                 loss.backward()
                 if (idx + 1) % grad_acc == 0:

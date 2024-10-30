@@ -1,5 +1,6 @@
 # tensor dumps
 *.pt
+!x-linear_projection_model.pt
 # Compiler Output #
 ###################
 *.py[cod]
