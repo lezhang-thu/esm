@@ -30,7 +30,6 @@ tasks:
           energy_cfg:
               struct_w: 3
               LM_w: 2
-              LM_w: 1 
               ngram_w: 1
               ngram_orders: [1,2,3]
           temperature:

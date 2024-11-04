@@ -43,7 +43,7 @@ from utils.lm import WrapLmEsm
 
 from utils.tensor import (
     assert_shape,)
-#from utils import ngram as ngram_utils
+from utils import ngram as ngram_utils
 
 logger = logging.getLogger(__name__)  # Hydra configured
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
@@ -307,15 +307,14 @@ class Designer:
 
         return total_loss, loss_dict
 
-    def calc_total_loss(
-            self,
-            x,
-            mask,
-            LM_w,
-            #struct_w,
-            #ngram_w,
-            #ngram_orders,
-            temp_struct=None):
+    def calc_total_loss(self,
+                        x,
+                        mask,
+                        LM_w,
+                        struct_w,
+                        ngram_w,
+                        ngram_orders,
+                        temp_struct=None):
         #"""
         #Easy one-stop-shop that calls out to all the implemented loss calculators,
         #aggregates logs, and weights total_loss.
