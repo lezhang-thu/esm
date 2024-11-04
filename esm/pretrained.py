@@ -59,8 +59,10 @@ def _download_model_and_regression_data(model_name):
     return model_data, regression_data
 
 
-def load_model_and_alphabet_hub(model_name):
+def load_model_and_alphabet_hub(model_name, use_lora=False):
     model_data, regression_data = _download_model_and_regression_data(model_name)
+    # debug
+    model_data["cfg"]["model"].use_lora = use_lora
     return load_model_and_alphabet_core(model_name, model_data, regression_data)
 
 
@@ -179,6 +181,8 @@ def _load_model_and_alphabet_core_v2(model_data):
         attention_heads=cfg.encoder_attention_heads,
         alphabet=alphabet,
         token_dropout=cfg.token_dropout,
+        # debug
+        use_lora=cfg.use_lora,
     )
     return model, alphabet, state_dict
 
@@ -377,12 +381,12 @@ def esm2_t30_150M_UR50D():
     return load_model_and_alphabet_hub("esm2_t30_150M_UR50D")
 
 
-def esm2_t33_650M_UR50D():
+def esm2_t33_650M_UR50D(use_lora=False):
     """33 layer ESM-2 model with 650M params, trained on UniRef50.
 
     Returns a tuple of (Model, Alphabet).
     """
-    return load_model_and_alphabet_hub("esm2_t33_650M_UR50D")
+    return load_model_and_alphabet_hub("esm2_t33_650M_UR50D", use_lora=use_lora)
 
 
 def esm2_t36_3B_UR50D():

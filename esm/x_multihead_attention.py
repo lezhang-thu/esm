@@ -30,6 +30,7 @@ class MultiheadAttention(nn.Module):
         add_bias_kv: bool = False,
         add_zero_attn: bool = False,
         use_rotary_embeddings: bool = False,
+        use_lora: bool = False,
     ):
         super().__init__()
         self.embed_dim = embed_dim
@@ -44,41 +45,46 @@ class MultiheadAttention(nn.Module):
                ), "embed_dim must be divisible by num_heads"
         self.scaling = self.head_dim**-0.5
 
-        # https://github.com/pytorch/torchtune/blob/main/recipes/configs/qwen2/0.5B_lora_single_device.yaml
-        # lora_rank: 32
-        # lora_alpha: 64
-        # lora_dropout: 0.0
-        lora_rank = 32
-        lora_alpha = 64
-        lora_dropout = 0.0
-        self.k_proj = LoRALinear(
-            self.kdim,
-            embed_dim,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-            use_bias=True,
-            quantize_base=False,
-        )
+        if use_lora:
+            # https://github.com/pytorch/torchtune/blob/main/recipes/configs/qwen2/0.5B_lora_single_device.yaml
+            # lora_rank: 32
+            # lora_alpha: 64
+            # lora_dropout: 0.0
+            lora_rank = 32
+            lora_alpha = 64
+            lora_dropout = 0.0
+            self.k_proj = LoRALinear(
+                self.kdim,
+                embed_dim,
+                rank=lora_rank,
+                alpha=lora_alpha,
+                dropout=lora_dropout,
+                use_bias=True,
+                quantize_base=False,
+            )
 
-        self.v_proj = LoRALinear(
-            self.vdim,
-            embed_dim,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-            use_bias=True,
-            quantize_base=False,
-        )
-        self.q_proj = LoRALinear(
-            embed_dim,
-            embed_dim,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-            use_bias=True,
-            quantize_base=False,
-        )
+            self.v_proj = LoRALinear(
+                self.vdim,
+                embed_dim,
+                rank=lora_rank,
+                alpha=lora_alpha,
+                dropout=lora_dropout,
+                use_bias=True,
+                quantize_base=False,
+            )
+            self.q_proj = LoRALinear(
+                embed_dim,
+                embed_dim,
+                rank=lora_rank,
+                alpha=lora_alpha,
+                dropout=lora_dropout,
+                use_bias=True,
+                quantize_base=False,
+            )
+        else:
+            self.k_proj = nn.Linear(self.kdim, embed_dim, bias=bias)
+            self.v_proj = nn.Linear(self.vdim, embed_dim, bias=bias)
+            self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
 
         self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
 

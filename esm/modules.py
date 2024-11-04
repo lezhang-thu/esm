@@ -92,12 +92,15 @@ class TransformerLayer(nn.Module):
         add_bias_kv=True,
         use_esm1b_layer_norm=False,
         use_rotary_embeddings: bool = False,
+        use_lora: bool = False,
     ):
         super().__init__()
         self.embed_dim = embed_dim
         self.ffn_embed_dim = ffn_embed_dim
         self.attention_heads = attention_heads
         self.use_rotary_embeddings = use_rotary_embeddings
+        # debug
+        self.use_lora = use_lora
         self._init_submodules(add_bias_kv, use_esm1b_layer_norm)
 
     def _init_submodules(self, add_bias_kv, use_esm1b_layer_norm):
@@ -109,6 +112,7 @@ class TransformerLayer(nn.Module):
             add_bias_kv=add_bias_kv,
             add_zero_attn=False,
             use_rotary_embeddings=self.use_rotary_embeddings,
+            use_lora=self.use_lora,
         )
         self.self_attn_layer_norm = BertLayerNorm(self.embed_dim)
 

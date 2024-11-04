@@ -71,6 +71,10 @@ def stage_free_generation(
         designer.resuming_stage = True
         curr_step += num_iter_mh
         pbar.update(num_iter_mh)
+        # debug
+        if curr_step % (100 * resample_y_every) == 0:
+            for seq in designer.decode(designer.x_seqs):
+                print("{: <10}: {}".format(curr_step, seq))
 
 def set_target_structure(designer, sampled_dist_and_angles):
     """

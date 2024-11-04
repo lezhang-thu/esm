@@ -109,13 +109,8 @@ class Designer:
 
     def _init_models(self):
         self.vocab = Alphabet.from_architecture('ESM-1b')
-        self.vocab_mask_AA = torch.BoolTensor(
-            [t in self.allowed_AA for t in self.vocab.all_toks]).to(self.device)
-        self.vocab_mask_AA_idx = torch.nonzero(self.vocab_mask_AA).squeeze()
-
-        self.struct_model, self.pdb_loader_params = struct_models.load(
-            self.vocab,)
-        self.LM = self.struct_model.lm
+        from esm.pretrained import esm2_t33_650M_UR50D
+        self.LM, _ = esm2_t33_650M_UR50D(use_lora=True)
 
         # 4. Common model settings
         def apply_common_settings(model):
@@ -127,7 +122,6 @@ class Designer:
             return model
 
         self.LM = apply_common_settings(self.LM)
-        self.struct_model = apply_common_settings(self.struct_model)
         # debug
         self.adapter_params = get_adapter_params(self.LM)
         #print(self.adapter_params)
