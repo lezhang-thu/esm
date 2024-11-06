@@ -15,7 +15,7 @@ import numpy as np
 
 # Code for loading constants for preprocessing
 seq_encode = ['L', 'A', 'G', 'V', 'S', 'E', 'R', 'T', 'I', 'D', 'P', 'K', 'Q', 'N', 'F', 'Y', 'M', 'H', 'W', 'C']
-BASE = Path('./utils/ngram_stats/')
+BASE = Path('./utils/ngram_stats/antibody/')
 ngram_list = []
 for fn in ["monogram_seg.p", "bigram_seg.p", "trigram_seg.p", "quadgram_seg.p"]:
     with open(BASE / fn, "rb") as f:

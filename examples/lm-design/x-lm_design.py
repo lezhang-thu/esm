@@ -209,10 +209,14 @@ class Designer:
 
         K = len(self.vocab)
         AA_indices = torch.arange(K, device=self.device)[self.vocab_mask_AA]
-        bt = torch.from_numpy(
-            np.random.choice(AA_indices.cpu().numpy(),
-                             size=(B, self.L))).to(self.device)
-        self.x_seqs = F.one_hot(bt, K).float()
+        # debug
+        x = "EVQLVESGGGLVQPGGSLRLSCAVSGFTVSRNYMTWARQAPGKGPEWVSVIYPGGSTFYADSVKGRFTISRDSSKNILYLQMNSLRVDDTAVYYCARDLTIRGEASWGQGTLVTVSS"
+        self.x_seqs = self.encode([x], onehot=True)
+        assert self.x_seqs.shape == (self.B, self.L, K)
+        #bt = torch.from_numpy(
+        #    np.random.choice(AA_indices.cpu().numpy(),
+        #                     size=(B, self.L))).to(self.device)
+        #self.x_seqs = F.one_hot(bt, K).float()
         self.init_seqs = self.x_seqs.clone()
 
     ##########################################
@@ -341,13 +345,15 @@ class Designer:
             total_loss += lm_m_nlls
             logs['lm_loss'] = lm_m_nlls
             logs.update(lm_loss_dict)
-        if struct_w:
+        #if struct_w:
+        if False:
             struct_m_nlls, struct_loss_dict = self.calc_structure_loss(
                 x, temp_struct=temp_struct)
             struct_m_nlls *= struct_w
             total_loss += struct_m_nlls
             logs['struct_loss'] = struct_m_nlls
             logs.update(struct_loss_dict)
+        #if False:
         if ngram_w:
             ngram_m_nlls = self.calc_ngram_loss(x, ngram_orders=ngram_orders)
             ngram_m_nlls *= ngram_w
@@ -364,6 +370,9 @@ class Designer:
         """
         Main run-loop for the Designer. Runs a relevant design procedure from the config.
         """
+        if True:
+            self.recover_seq()
+            exit(0)
         logger.info(f'Designing sequence for task: {self.cfg.task}')
 
         design_cfg = self.cfg.tasks[self.cfg.task]
@@ -378,6 +387,114 @@ class Designer:
         for seq in self.decode(self.x_seqs):
             logger.info(seq)
         self.output_seq = self.decode(self.x_seqs)[0]
+
+    @torch.no_grad
+    def recover_seq(self):
+        import copy
+        import re
+        import random
+        import pandas as pd
+        import pickle
+
+        batch_converter = self.antibody.vocab.get_batch_converter()
+        # Read the CSV file
+        x = list(
+            set(
+                list(
+                    pd.read_csv(
+                        "/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/train-vh-vl-aa.csv"
+                    )["VH_aa"])) -
+            set(
+                list(
+                    pd.read_csv(
+                        "/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/antibody9_16.csv"
+                    )["VH_aa"])))
+        x.sort()
+        diff_seq = list()
+        for _ in x:
+            if '*' not in _:
+                diff_seq.append(_)
+        t = copy.deepcopy(diff_seq)
+
+        # mask - start
+        def mask_string(text, mask_token="<mask>", mask_prob=0.15):
+            masked_text = []
+            for char in text:
+                # Decide to mask this character based on the mask probability
+                if random.random() < mask_prob:
+                    masked_text.append(mask_token)
+                else:
+                    masked_text.append(char)
+            return ''.join(masked_text)
+
+        for idx, _ in enumerate(diff_seq):
+            diff_seq[idx] = mask_string(_)
+        ## debug - start
+        #if True:
+        #    with open(os.path.join('..', '..', '..', 'result-0.pkl'),
+        #              'rb') as f:
+        #        x = pickle.load(f)
+        #        for idx, _ in enumerate(x):
+        #            assert diff_seq[idx] == _
+        #        print('all true')
+        #        exit(0)
+        #with open(os.path.join('..', '..', '..', 'result-0.pkl'), 'wb') as f:
+        #    pickle.dump(diff_seq, f)
+        #exit(0)
+        ## debug - end
+        # mask - end
+
+        data = []
+        for idx, _ in enumerate(diff_seq):
+            data.append(("protein{}".format(idx), _))
+        counter_match = 0
+        for k in range(len(data) // 32):
+            tgt = t[k * 32:min((k + 1) * 32, len(t))]
+            x = data[k * 32:min((k + 1) * 32, len(data))]
+            _, _, batch_tokens = batch_converter(x)
+            batch_tokens = batch_tokens.to(self.device)
+            x = self.antibody.model(batch_tokens)["logits"][
+                batch_tokens == self.vocab.mask_idx].argmax(-1)
+            batch_tokens[batch_tokens == self.vocab.mask_idx] = x
+            for idx, seq in enumerate(self.decode(batch_tokens, False)):
+                seq = re.search(r"<cls>(.*?)<eos>", seq).group(1)
+                if seq == tgt[idx]:
+                    counter_match += 1
+                else:
+                    pass
+                    #print('#' * 20)
+                    #print(seq)
+                    #print(tgt[idx])
+                #print('counter_match: {}'.format(counter_match))
+        print('counter_match: {}, total: {}'.format(counter_match, len(t)))
+        #data = [
+        #    ("protein0",
+        #     "<mask>VQLVESGGG<mask>IQPGGSLRLSCAASGFIVSRNYM<mask>WVRQAPGKGLEWVALIYSGGSTFYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARDLVVYGLDYWGQGTLVTVSS"
+        #    ),
+        #    ("protein1",
+        #     "EVQLLESGGGLIQP<mask>GSLRLSCAASGVTVSSNYMSWVRQAPGKGLEWVSL<mask>FAGGSTFYADSVRGR<mask>TISRDNSKNTLYLQMNTLR<mask>EDTAMYFCARDLGPAGATDCWGQGTLVTVSS"
+        #    ),
+        #    ("protein2",
+        #     "QVQLVESGGGLIQPGGS<mask>RLSCAASEFIVSKNYMS<mask>VRQAPGKGLEWVSVIYPGGTTYYA<mask>SVRGRFTI<mask>RDNSKNTLYLQMNSLRAEDTAVYYCARDYGDFYFDYWGQGTLVTVSS"
+        #    ),
+        #    ("protein3",
+        #     "EVQLVESGGGLVQP<mask>GSLRLSCAASEIIVSSNY<mask>SWVRQAPGMGLEWVSVVYSGGSTFYADS<mask>KGRFTISRHNSKNTLYLQMNSLRTEDT<mask>VYYCAREAPNSRGSGT<mask>FDYWG<mask>GTLVTVSS"
+        #    ),
+        #    ("protein4",
+        #     "EVQLVESGG<mask>LIQPGGSLR<mask>SCAASGFTVSSNYMSWVRQAPKKGL<mask>WVSVIYSGGSTYYADSVKGRFTI<mask>RDNSKNTLYLQMNSLRAEDTAVY<mask>CAREGAAANTHGWFDPWG<mask>GTLVTVSS"
+        #    ),
+        #]
+
+        #_, _, batch_tokens = batch_converter(data)
+        #batch_tokens = batch_tokens.to(self.device)
+        ##print('self.antibody.model(batch_tokens)["logits"].shape: {}'.format(self.antibody.model(batch_tokens)["logits"].shape))
+        ##print('(batch_tokens == self.vocab.mask_idx).shape: {}'.format((batch_tokens == self.vocab.mask_idx).shape))
+        ##exit(0)
+        #x = self.antibody.model(batch_tokens)["logits"][
+        #    batch_tokens == self.vocab.mask_idx].argmax(-1)
+        #batch_tokens[batch_tokens == self.vocab.mask_idx] = x
+        #for seq in self.decode(batch_tokens, False):
+        #    logger.info(seq)
 
     def init_schedulers_from_cfg(self, cfg: DictConfig):
         """

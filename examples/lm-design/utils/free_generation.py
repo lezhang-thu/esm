@@ -59,7 +59,7 @@ def stage_free_generation(
         set_target_structure(designer, sampled_dist_and_angles)
 
     curr_step = 0
-    pbar = tqdm(total=num_iter, desc='stage_hallucination_joint_mh')
+    #pbar = tqdm(total=num_iter, desc='stage_hallucination_joint_mh')
     while curr_step < num_iter:
         resample_y()
 
@@ -70,7 +70,7 @@ def stage_free_generation(
         # Set this flag to true so inner schedulers at stage_fixedbb will keep state between calls
         designer.resuming_stage = True
         curr_step += num_iter_mh
-        pbar.update(num_iter_mh)
+        #pbar.update(num_iter_mh)
         # debug
         if curr_step % (100 * resample_y_every) == 0:
             for seq in designer.decode(designer.x_seqs):
