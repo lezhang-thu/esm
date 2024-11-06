@@ -37,7 +37,7 @@ from utils.sampling import (
     set_rng_seeds,)
 from utils.constants import COORDS_ANGLE_NAMES, COORDS4D_NAMES
 import utils.struct_models as struct_models
-from utils.free_generation import stage_free_generation
+from utils.x_free_generation import stage_free_generation
 from utils.fixedbb import stage_fixedbb
 from utils.lm import WrapLmEsm
 
@@ -208,20 +208,54 @@ class Designer:
         self.B = B = self.num_seqs = num_seqs
 
         K = len(self.vocab)
-        AA_indices = torch.arange(K, device=self.device)[self.vocab_mask_AA]
+        #AA_indices = torch.arange(K, device=self.device)[self.vocab_mask_AA]
         # debug
         x = "EVQLVESGGGLVQPGGSLRLSCAVSGFTVSRNYMTWARQAPGKGPEWVSVIYPGGSTFYADSVKGRFTISRDSSKNILYLQMNSLRVDDTAVYYCARDLTIRGEASWGQGTLVTVSS"
+        #x = ["<mask>"] * self.L
+        x_seq = []
+
+        import random
+        for _ in list(x):
+            if random.random() < 0.5:
+                x_seq.append('<mask>')
+            else:
+                x_seq.append(_)
+        x = x_seq
         self.x_seqs = self.encode([x], onehot=True)
         assert self.x_seqs.shape == (self.B, self.L, K)
+        return
         #bt = torch.from_numpy(
         #    np.random.choice(AA_indices.cpu().numpy(),
         #                     size=(B, self.L))).to(self.device)
-        #self.x_seqs = F.one_hot(bt, K).float()
-        self.init_seqs = self.x_seqs.clone()
+        #self.x_seqs = F.one_hot(
+        #    torch.full((
+        #        self.B,
+        #        self.L,
+        #    ),
+        #               self.vocab.mask_idx,
+        #               device=self.device), K).float()
+        #self.x_seqs = self.antibody(self.x_seqs)['logits'].argmax(-1)
+        #self.x_seqs = F.one_hot(self.x_seqs, K).float()
+        self.x_seqs = F.one_hot(bt, K).float()
+        for _ in self.decode(self.x_seqs):
+            print(_)
+        #self.init_seqs = self.x_seqs.clone()
 
     ##########################################
     # Losses
     ##########################################
+    def calc_x(
+        self,
+        x_seqs,
+    ):
+        return lm_marginal(self.antibody, x_seqs, mask=None)
+
+    def calc_mlm(
+        self,
+        x_seqs,
+    ):
+        return self.antibody(x_seqs)
+
     def calc_sequence_loss(self,
                            x_seqs,
                            LM_losses={'CE_x_pLM': 1.0},
@@ -243,7 +277,17 @@ class Designer:
 
         # debug
         #LM_out_logprobs = lm_marginal(self.LM, x_seqs, mask=mask)
-        LM_out_logprobs = lm_marginal(self.antibody, x_seqs, mask=mask)
+        #LM_out_logprobs = lm_marginal(self.antibody, x_seqs, mask=mask)
+        #LM_out_logprobs = lm_marginal(self.LM, x_seqs, mask=mask)
+        # debug - start
+        for _ in range(1000):
+            LM_out_logprobs = lm_marginal(self.antibody, x_seqs, mask=None)
+            #print('x_seqs.shape: {}'.format(x_seqs.shape))
+            #print('LM_out_logprobs.shape: {}'.format(LM_out_logprobs.shape))
+            #print('n: {}'.format(n))
+            #exit(0)
+        exit(0)
+        # debug - end
 
         # For loss calculations, only calculate based on the portion in `mask`.
         x_seqs_masked = x_seqs.masked_select(mask).reshape(B, n, K)
@@ -370,7 +414,7 @@ class Designer:
         """
         Main run-loop for the Designer. Runs a relevant design procedure from the config.
         """
-        if True:
+        if False:
             self.recover_seq()
             exit(0)
         logger.info(f'Designing sequence for task: {self.cfg.task}')
@@ -399,11 +443,11 @@ class Designer:
         batch_converter = self.antibody.vocab.get_batch_converter()
         # Read the CSV file
         x = list(
-            set(
-                list(
-                    pd.read_csv(
-                        "/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/train-vh-vl-aa.csv"
-                    )["VH_aa"])) -
+            #set(
+            #    list(
+            #        pd.read_csv(
+            #            "/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/train-vh-vl-aa.csv"
+            #        )["VH_aa"])) -
             set(
                 list(
                     pd.read_csv(
