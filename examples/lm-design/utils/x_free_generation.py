@@ -16,6 +16,7 @@ from torch.distributions import Bernoulli
 @torch.no_grad()
 def stage_free_generation(
     designer,
+    logger,
     num_iter: int,
     resample_y_every: int,
     stage_fixedbb_args: Optional[DictConfig] = None,
@@ -80,10 +81,10 @@ def stage_free_generation(
             designer.x_seqs = torch.where(A_bools[:, None, None], x_seqs_p,
                                           x_seqs)  # [B, L, K]
             #exit(0)
-            print("e_old: {:.3f}, e_new: {:.3f}".format(e_old.item(),
+            logger.info("e_old: {:.3f}, e_new: {:.3f}".format(e_old.item(),
                                                         e_new.item()))
             for seq in designer.decode(designer.x_seqs):
-                print("{: <10}, {: <10}: {}".format(curr_step, t, seq))
+                logger.info("{: <10}, {: <10}: {}".format(curr_step, t, seq))
 
         curr_step += 1
         # debug

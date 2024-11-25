@@ -136,9 +136,11 @@ class Designer:
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
-        from mask_tokens_dataset import MaskTokensDataset
+        from vh_vl_mask_tokens_dataset import MaskTokensDataset
         ds = MaskTokensDataset(
-            dataset=list(set(df['VH_aa'])),
+            #dataset=list(set(df['VH_aa'])),
+            #dataset=list(set(df['VL_aa'])),
+            dataset=df[['VH_aa', 'VL_aa']],
             batch_converter=self.vocab.get_batch_converter(),
             pad_str="<pad>",
             mask_str="<mask>",
@@ -172,7 +174,8 @@ class Designer:
 
         # loss
         xent = torch.nn.CrossEntropyLoss(
-            ignore_index=self.vocab.get_idx("<pad>"))
+            #ignore_index=self.vocab.get_idx("<pad>"))
+            ignore_index=-1)
 
         for e in range(num_epochs):
             # SET_EPOCH!!!
@@ -200,7 +203,7 @@ class Designer:
         adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
         #print(adapter_state_dict)
         logger.info(os.getcwd())
-        torch.save(adapter_state_dict, 'adapter_{}.pt'.format(num_epochs))
+        torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-2.pt'.format(num_epochs))
         # Save lora - end
 
         #logger.info(f'Final designed sequences:')

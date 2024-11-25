@@ -1,4 +1,4 @@
 set -ex
-python -m x-lm_design task=free_generation \
-	free_generation_length=117 \
+python -m vh-vl-lm_design task=free_generation \
 	seed=42
+#free_generation_length=107 \

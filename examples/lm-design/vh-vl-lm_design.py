@@ -75,13 +75,8 @@ class Designer:
                                       (not AA in self.cfg.suppress_AA)))
 
         self._init_models()
-        if target_pdb_path is None:
-            # eg notarget-L70
-            target_pdb_path = 'notarget-L100'
-            self._init_no_target(cfg.free_generation_length)
-        else:
-            target_pdb_path = Path(target_pdb_path)
-            self._init_target(target_pdb_path)
+        VH_VL_SIZE = 298
+        self.L = VH_VL_SIZE
 
         set_rng_seeds(self.seed)
         self.schedulers = {}  # reset schedulers
@@ -117,7 +112,8 @@ class Designer:
         from esm.pretrained import esm2_t33_650M_UR50D
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
-            torch.load(os.path.join('..', '..', '..', 'adapter_512-VL_aa.pt'),
+            torch.load(os.path.join('..', '..', '..',
+                                    'adapter_512-VH-VL_aa.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -151,58 +147,6 @@ class Designer:
         ]
         return seqs
 
-    def _init_no_target(self, L):
-        ## Initialize target and wt_seq
-        self.L = self.seqL = L
-        self.wt_metrics = {}
-        self.wt_seq = None
-        self.target_no_angles = False
-
-        # Assume naive positional indexing, to allow calling struct_pred.
-        self.pos_idx = torch.arange(self.L).long()[
-            None,
-        ].to(self.device)
-        # Valid contacts indicate positions that had no contact in the pdb file of the protein to
-        # ignore. No target, so everything is valid.
-        self.valid_contacts = torch.ones(self.L, self.L).bool().to(self.device)
-
-    def _init_target(self, pdb_path):
-        ## Initialize target and wt_seq
-        assert pdb_path.suffix == ".pdb"
-        self.target_pdb_path = pdb_path
-
-        self.pdb_id = Path(pdb_path).stem
-        self.target_data = pdb_loader.loader(
-            pdb_path=pdb_path,
-            params=self.pdb_loader_params,
-            set_diagonal=True,
-            allow_missing_residue_coords=self.cfg.allow_missing_residue_coords)
-        self.target_xyz = torch.tensor(self.target_data['xyz']).to(self.device)
-        self.pos_idx = torch.tensor(self.target_data['idx']).long()[
-            None,
-        ].to(self.device)
-        self.coords = torch.tensor(self.target_data['coords6d']).long()[
-            None,
-        ].to(self.device)
-
-        self.wt_seq_raw = self.target_data['fullseq'][0]
-        self.wt_seq = self.encode(self.wt_seq_raw).unsqueeze(0)  # B x L x K
-        self.seqL = self.L = len(self.wt_seq_raw)
-        self.target_distancemap = torch.from_numpy(self.target_data["dist"])
-        self.target_contacts = (self.target_distancemap
-                                < self.cutoff_dist).to(self.device)
-        self.target_no_contacts = ~self.target_contacts
-        # Mark for contacts that have no nan distance values in the distance map
-        self.valid_contacts = torch.from_numpy(
-            self.target_data['dist'] == self.target_data['dist']).to(
-                self.device)
-        self.target_contacts &= self.valid_contacts
-        self.target_no_contacts &= self.valid_contacts
-        self.target_no_angles = self.target_data["no_angles"]
-
-        logger.info(f'Initialized target {self.pdb_id} of length {self.seqL}')
-        logger.info(f'Wildtype sequence:\n{self.wt_seq_raw}')
-
     def init_sequences(self, num_seqs):
         assert num_seqs == 1, "Only 1 sequence design in parallel supported for now."
         self.B = B = self.num_seqs = num_seqs
@@ -211,17 +155,23 @@ class Designer:
         #AA_indices = torch.arange(K, device=self.device)[self.vocab_mask_AA]
         # debug
         #x = "EVQLVESGGGLVQPGGSLRLSCAVSGFTVSRNYMTWARQAPGKGPEWVSVIYPGGSTFYADSVKGRFTISRDSSKNILYLQMNSLRVDDTAVYYCARDLTIRGEASWGQGTLVTVSS"
-        x = "DIQMTQSPSSVSASVGDRVTITCRASQGISTWLAWYQQKPGKAPKVLINAASGLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQAHSFPPTFGPGTKLEIK"
         #x = ["<mask>"] * self.L
+        x_vh = 'EVQLVESGGGLIQPGGSLRLSCAASGFIVSRNYMNWVRQAPGKGLEWVALIYSGGSTFYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARDLVVYGLDYWGQGTLVTVSS'
+        x_vl = 'AIQLTQSPSSLSASVGDRVTITCRASQGISSHLAWYQQKPGKAPKLLIFAASTLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQHLNSNPPITFGQGTRLEIK'
         x_seq = []
 
         import random
-        for _ in list(x):
+        for _ in list(x_vh + x_vl):
             if random.random() < 0.5:
                 x_seq.append('<mask>')
             else:
                 x_seq.append(_)
-        x = x_seq
+        VH_VL_SIZE = 298
+        half = VH_VL_SIZE // 2
+        x = ['<pad>'] * VH_VL_SIZE
+        x[:len(x_vh)] = x_seq[:len(x_vh)]
+        x[half:half + len(x_vl)] = x_seq[len(x_vh):]
+
         self.x_seqs = self.encode([x], onehot=True)
         assert self.x_seqs.shape == (self.B, self.L, K)
         return
