@@ -112,7 +112,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         #exit(0)
         mask[mask_idc] = True
 
-        # the targets for masked LM training)
+        # the targets for masked LM training
         tgt_new_item = np.full(len(mask), self.pad_str)
         tgt_new_item[mask] = item[mask]
         x_mask = np.copy(mask)
