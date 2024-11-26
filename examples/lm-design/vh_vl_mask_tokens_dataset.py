@@ -144,7 +144,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
             num_rand = rand_mask.sum()
             if num_rand > 0:
                 new_item[rand_mask] = rng.choice(
-                    self.amino_acids,
+                    self.amino_acids + ["<pad>"],
                     num_rand,
                 )
         # critical - start
