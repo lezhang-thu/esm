@@ -112,6 +112,17 @@ class Designer:
         from esm.pretrained import esm2_t33_650M_UR50D
         self.LM, _ = esm2_t33_650M_UR50D(use_lora=True)
 
+        # debug - start
+        #lora_missing, lora_unexpected = self.LM.load_state_dict(
+        #    torch.load(os.path.join('..', '..', '..',
+        #                            'adapter_512-VH-VL_aa.pt'),
+        #               map_location="cpu",
+        #               weights_only=True),
+        #    strict=False)
+        #assert all('lora' not in x for x in lora_missing)
+        #assert len(lora_unexpected) == 0
+        # debug - end
+
         # 4. Common model settings
         def apply_common_settings(model):
             model.to(self.device)
