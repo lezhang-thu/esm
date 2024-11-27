@@ -113,7 +113,7 @@ class Designer:
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
             torch.load(os.path.join('..', '..', '..',
-                                    'adapter_512-VH-VL_aa.pt'),
+                                    'adapter_512-VH-VL_aa-2.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -162,7 +162,8 @@ class Designer:
 
         import random
         for _ in list(x_vh + x_vl):
-            if random.random() < 0.5:
+            #if random.random() < 0.5:
+            if random.random() < 0.2:
                 x_seq.append('<mask>')
             else:
                 x_seq.append(_)
