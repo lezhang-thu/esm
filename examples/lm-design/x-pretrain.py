@@ -143,7 +143,7 @@ class Designer:
 
         # Read the CSV file
         df = pd.read_csv(
-            '/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/antibody9_16.csv'
+            '/home/zhaoxin/esm/examples/lm-design/antibody9_16.csv'
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
@@ -155,6 +155,7 @@ class Designer:
             batch_converter=self.vocab.get_batch_converter(),
             pad_str="<pad>",
             mask_str="<mask>",
+            unk_str="<unk>",
             seed=self.seed,
             mask_prob=0.15,
             leave_unmasked_prob=0.1,
@@ -185,8 +186,8 @@ class Designer:
 
         # loss
         xent = torch.nn.CrossEntropyLoss(
-            #ignore_index=self.vocab.get_idx("<pad>"))
-            ignore_index=-1)
+            ignore_index=self.vocab.get_idx("<pad>"))
+            #ignore_index=-1)
 
         for e in range(num_epochs):
             # SET_EPOCH!!!

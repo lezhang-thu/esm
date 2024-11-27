@@ -18,6 +18,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         batch_converter: esm.data.BatchConverter,
         pad_str: str,
         mask_str: str,
+        unk_str: str,
         return_masked_tokens: bool = False,
         seed: int = 1,
         mask_prob: float = 0.15,
@@ -36,6 +37,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         self.batch_converter = batch_converter
         self.pad_str = pad_str
         self.mask_str = mask_str
+        self.unk_str = unk_str
         self.return_masked_tokens = return_masked_tokens
         self.seed = seed
         self.mask_prob = mask_prob
@@ -83,15 +85,15 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         vh_vl = self.dataset.iloc[index]
 
         # debug - start
-        VH_VL_SIZE = 298
+        VH_VL_SIZE = 300
         half = VH_VL_SIZE // 2
 
         t = vh_vl
         vh_vl = dict()
-        vh_vl['VH_aa'] = [self.pad_str] * half
+        vh_vl['VH_aa'] = [self.unk_str] * half
         vh_vl['VH_aa'][:len(t['VH_aa'])] = list(t['VH_aa'])
 
-        vh_vl['VL_aa'] = [self.pad_str] * half
+        vh_vl['VL_aa'] = [self.unk_str] * half
         vh_vl['VL_aa'][:len(t['VL_aa'])] = list(t['VL_aa'])
         # debug - end
 
@@ -115,7 +117,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         # the targets for masked LM training
         tgt_new_item = np.full(len(mask), self.pad_str)
         tgt_new_item[mask] = item[mask]
-        x_mask = np.copy(mask)
+        #x_mask = np.copy(mask)
 
         # decide unmasking and random replacement
         rand_or_unmask_prob = self.random_token_prob + self.leave_unmasked_prob
@@ -144,7 +146,7 @@ class MaskTokensDataset(torch.utils.data.Dataset):
             num_rand = rand_mask.sum()
             if num_rand > 0:
                 new_item[rand_mask] = rng.choice(
-                    self.amino_acids + ["<pad>"],
+                    self.amino_acids + [self.unk_str],
                     num_rand,
                 )
         # critical - start
@@ -169,9 +171,9 @@ class MaskTokensDataset(torch.utils.data.Dataset):
         ])
         # debug
         # hacker way!!!
-        #x[1][0] = x[1][-1] = self.batch_converter.alphabet.padding_idx
-        # <cls> + seq. + <eos> ALL ignored!
-        x_mask = np.concatenate([[False], x_mask, [False]])
-        x[1][~x_mask] = -1
+        x[1][0] = x[1][-1] = self.batch_converter.alphabet.padding_idx
+        ## <cls> + seq. + <eos> ALL ignored!
+        #x_mask = np.concatenate([[False], x_mask, [False]])
+        #x[1][~x_mask] = -1
 
         return x[0], x[1]
