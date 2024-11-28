@@ -143,7 +143,7 @@ class Designer:
 
         # Read the CSV file
         df = pd.read_csv(
-            '/home/zhaoxin/esm/examples/lm-design/antibody9_16.csv'
+            '/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/antibody9_16.csv'
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
