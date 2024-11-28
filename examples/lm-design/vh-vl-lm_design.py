@@ -75,7 +75,7 @@ class Designer:
                                       (not AA in self.cfg.suppress_AA)))
 
         self._init_models()
-        VH_VL_SIZE = 300
+        VH_VL_SIZE = 298 
         self.L = VH_VL_SIZE
 
         set_rng_seeds(self.seed)
@@ -113,7 +113,7 @@ class Designer:
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
             torch.load(os.path.join('..', '..', '..',
-                                    'adapter_512-VH-VL_aa-h800.pt'),
+                                    'adapter_512-VH-VL_aa.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -168,9 +168,9 @@ class Designer:
                 x_seq.append('<mask>')
             else:
                 x_seq.append(_)
-        VH_VL_SIZE = 300
+        VH_VL_SIZE = 298 
         half = VH_VL_SIZE // 2
-        x = ['<unk>'] * VH_VL_SIZE
+        x = ['<pad>'] * VH_VL_SIZE
         x[:len(x_vh)] = x_seq[:len(x_vh)]
         x[half:half + len(x_vl)] = x_seq[len(x_vh):]
 

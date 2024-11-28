@@ -31,17 +31,17 @@ def stage_free_generation(
 
     # debug - start
     # init
-    VH_VL_SIZE = 300
+    VH_VL_SIZE = 298 
     seq_idx = designer.x_seqs.argmax(-1).cpu().numpy()
-    vh_unk_start = np.argmax(seq_idx == designer.vocab.unk_idx, axis=1)
-    vL_unk_start = (VH_VL_SIZE // 2) + np.argmax(
-        seq_idx[:, (VH_VL_SIZE // 2):] == designer.vocab.unk_idx, axis=1)
+    vh_pad_start = np.argmax(seq_idx == designer.vocab.padding_idx, axis=1)
+    vL_pad_start = (VH_VL_SIZE // 2) + np.argmax(
+        seq_idx[:, (VH_VL_SIZE // 2):] == designer.vocab.padding_idx, axis=1)
     # debug - end
 
     while curr_step < num_iter:
         for t in range(L):
             # debug - start
-            if (vh_unk_start[0] < t < VH_VL_SIZE // 2) or (vL_unk_start[0] < t <
+            if (vh_pad_start[0] < t < VH_VL_SIZE // 2) or (vL_pad_start[0] < t <
                                                            VH_VL_SIZE):
                 continue
             # debug - end
@@ -105,19 +105,19 @@ def stage_free_generation(
 
             # debug - start
             seq_idx = designer.x_seqs.argmax(-1).cpu().numpy()
-            if (t == vh_unk_start[0] and t < L and
-                    seq_idx[0, t] != designer.vocab.unk_idx):
-                vh_unk_start[0] += 1
-            elif (t == vh_unk_start[0] - 1 and t >= 0 and
-                  seq_idx[0, t] == designer.vocab.unk_idx):
-                vh_unk_start[0] -= 1
+            if (t == vh_pad_start[0] and t < L and
+                    seq_idx[0, t] != designer.vocab.padding_idx):
+                vh_pad_start[0] += 1
+            elif (t == vh_pad_start[0] - 1 and t >= 0 and
+                  seq_idx[0, t] == designer.vocab.padding_idx):
+                vh_pad_start[0] -= 1
 
-            elif (t == vL_unk_start[0] and t < L and
-                  seq_idx[0, t] != designer.vocab.unk_idx):
-                vL_unk_start[0] += 1
-            elif (t == vL_unk_start[0] - 1 and t >= 0 and
-                  seq_idx[0, t] == designer.vocab.unk_idx):
-                vL_unk_start[0] -= 1
+            elif (t == vL_pad_start[0] and t < L and
+                  seq_idx[0, t] != designer.vocab.padding_idx):
+                vL_pad_start[0] += 1
+            elif (t == vL_pad_start[0] - 1 and t >= 0 and
+                  seq_idx[0, t] == designer.vocab.padding_idx):
+                vL_pad_start[0] -= 1
             else:
                 pass
             # debug - end

@@ -113,14 +113,14 @@ class Designer:
         self.LM, _ = esm2_t33_650M_UR50D(use_lora=True)
 
         # debug - start
-        #lora_missing, lora_unexpected = self.LM.load_state_dict(
-        #    torch.load(os.path.join('..', '..', '..',
-        #                            'adapter_512-VH-VL_aa.pt'),
-        #               map_location="cpu",
-        #               weights_only=True),
-        #    strict=False)
-        #assert all('lora' not in x for x in lora_missing)
-        #assert len(lora_unexpected) == 0
+        lora_missing, lora_unexpected = self.LM.load_state_dict(
+            torch.load(os.path.join('..', '..', '..',
+                                    'adapter_512-VH-VL_aa.pt'),
+                       map_location="cpu",
+                       weights_only=True),
+            strict=False)
+        assert all('lora' not in x for x in lora_missing)
+        assert len(lora_unexpected) == 0
         # debug - end
 
         # 4. Common model settings
@@ -147,7 +147,7 @@ class Designer:
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
-        from vh_vl_mask_tokens_dataset import MaskTokensDataset
+        from pad_mask_tokens_dataset import MaskTokensDataset
         ds = MaskTokensDataset(
             #dataset=list(set(df['VH_aa'])),
             #dataset=list(set(df['VL_aa'])),
@@ -215,7 +215,7 @@ class Designer:
         adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
         #print(adapter_state_dict)
         logger.info(os.getcwd())
-        torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-2.pt'.format(num_epochs))
+        torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-pad.pt'.format(num_epochs))
         # Save lora - end
 
         #logger.info(f'Final designed sequences:')
