@@ -37,13 +37,13 @@ from utils.sampling import (
     set_rng_seeds,)
 from utils.constants import COORDS_ANGLE_NAMES, COORDS4D_NAMES
 import utils.struct_models as struct_models
-from utils.x_free_generation import stage_free_generation
+from utils.vh_vl_free_generation import stage_free_generation
 from utils.fixedbb import stage_fixedbb
 from utils.lm import WrapLmEsm
 
 from utils.tensor import (
     assert_shape,)
-from utils import ngram as ngram_utils
+#from utils import ngram as ngram_utils
 
 logger = logging.getLogger(__name__)  # Hydra configured
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
@@ -113,7 +113,7 @@ class Designer:
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
             torch.load(os.path.join('..', '..', '..',
-                                    'adapter_512-VH-VL_aa-2.pt'),
+                                    'adapter_512-VH-VL_aa-h800.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -162,8 +162,9 @@ class Designer:
 
         import random
         for _ in list(x_vh + x_vl):
-            #if random.random() < 0.5:
-            if random.random() < 0.2:
+            #if random.random() < .0:
+            if random.random() < 0.5:
+            #if random.random() < 0.2:
                 x_seq.append('<mask>')
             else:
                 x_seq.append(_)
