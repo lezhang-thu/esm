@@ -162,8 +162,8 @@ class Designer:
 
         import random
         for _ in list(x_vh + x_vl):
-            #if random.random() < .0:
-            if random.random() < 0.5:
+            if random.random() < .0:
+            #if random.random() < 0.5:
             #if random.random() < 0.2:
                 x_seq.append('<mask>')
             else:
@@ -201,7 +201,9 @@ class Designer:
         self,
         x_seqs,
     ):
-        return lm_marginal(self.antibody, x_seqs, mask=None)
+        #return lm_marginal(self.antibody, x_seqs, mask=None)
+        # VERY IMPORTANT FOR **mask**
+        return lm_marginal(self.antibody, x_seqs, mask=x_seqs.argmax(-1, keepdim=True) != self.vocab.padding_idx)
 
     def calc_mlm(
         self,

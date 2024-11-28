@@ -31,7 +31,7 @@ def stage_free_generation(
 
     # debug - start
     # init
-    VH_VL_SIZE = 298 
+    VH_VL_SIZE = 298
     seq_idx = designer.x_seqs.argmax(-1).cpu().numpy()
     vh_pad_start = np.argmax(seq_idx == designer.vocab.padding_idx, axis=1)
     vL_pad_start = (VH_VL_SIZE // 2) + np.argmax(
@@ -48,13 +48,14 @@ def stage_free_generation(
 
             x_seqs = copy.deepcopy(designer.x_seqs)
 
+            x_seqs_help = x_seqs.argmax(-1, keepdim=True)
             e_old = designer.calc_x(x_seqs).gather(
-                -1,
-                x_seqs.argmax(-1).unsqueeze(-1)).squeeze(-1)
-            assert e_old.shape == (
-                B,
-                L,
-            )
+                -1, x_seqs_help[x_seqs_help != designer.vocab.padding_idx].
+                unsqueeze(-1).unsqueeze(0)).squeeze(-1)
+            #assert e_old.shape == (
+            #    B,
+            #    L,
+            #)
             e_old = -(e_old.sum(-1))
 
             w_o = x_seqs[:, t, :].argmax(-1)
@@ -72,13 +73,14 @@ def stage_free_generation(
             q_xp_x = probs.gather(-1, w_n.unsqueeze(-1)).squeeze(-1)
             q_x_xp = probs.gather(-1, w_o.unsqueeze(-1)).squeeze(-1)
 
+            x_seqs_p_help = x_seqs_p.argmax(-1, keepdim=True)
             e_new = designer.calc_x(x_seqs_p).gather(
-                -1,
-                x_seqs_p.argmax(-1).unsqueeze_(-1)).squeeze(-1)
-            assert e_new.shape == (
-                B,
-                L,
-            )
+                -1, x_seqs_p_help[x_seqs_p_help != designer.vocab.padding_idx].
+                unsqueeze(-1).unsqueeze(0)).squeeze(-1)
+            #assert e_new.shape == (
+            #    B,
+            #    L,
+            #)
             e_new = -(e_new.sum(-1))
 
             #print(-e_new)
