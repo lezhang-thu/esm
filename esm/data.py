@@ -120,6 +120,9 @@ class Alphabet(object):
         self.eos_idx = self.get_idx("<eos>")
         self.all_special_tokens = ['<eos>', '<unk>', '<pad>', '<cls>', '<mask>']
         self.unique_no_split_tokens = self.all_toks
+        # debug
+        #print(self.all_toks)
+        #exit(0)
 
     def __len__(self):
         return len(self.all_toks)

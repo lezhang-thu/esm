@@ -10,7 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .x_multihead_attention import MultiheadAttention  # noqa
+#from .x_multihead_attention import MultiheadAttention  # noqa
+from .accelerate_MHA import MultiheadAttention  # noqa
 from .axial_attention import ColumnSelfAttention, RowSelfAttention
 
 
