@@ -29,23 +29,8 @@ def stage_free_generation(
     curr_step = 0
     B, L, K = designer.x_seqs.shape
 
-    # debug - start
-    # init
-    VH_VL_SIZE = 298
-    seq_idx = designer.x_seqs.argmax(-1).cpu().numpy()
-    vh_pad_start = np.argmax(seq_idx == designer.vocab.padding_idx, axis=1)
-    vL_pad_start = (VH_VL_SIZE // 2) + np.argmax(
-        seq_idx[:, (VH_VL_SIZE // 2):] == designer.vocab.padding_idx, axis=1)
-    # debug - end
-
     while curr_step < num_iter:
         for t in range(L):
-            # debug - start
-            if (vh_pad_start[0] < t < VH_VL_SIZE // 2) or (vL_pad_start[0] < t <
-                                                           VH_VL_SIZE):
-                continue
-            # debug - end
-
             x_seqs = copy.deepcopy(designer.x_seqs)
 
             x_seqs_help = x_seqs.argmax(-1, keepdim=True)
@@ -104,25 +89,6 @@ def stage_free_generation(
                 e_old.item(), e_new.item()))
             for seq in designer.decode(designer.x_seqs):
                 logger.info("{: <10}, {: <10}: {}".format(curr_step, t, seq))
-
-            # debug - start
-            seq_idx = designer.x_seqs.argmax(-1).cpu().numpy()
-            if (t == vh_pad_start[0] and t < L and
-                    seq_idx[0, t] != designer.vocab.padding_idx):
-                vh_pad_start[0] += 1
-            elif (t == vh_pad_start[0] - 1 and t >= 0 and
-                  seq_idx[0, t] == designer.vocab.padding_idx):
-                vh_pad_start[0] -= 1
-
-            elif (t == vL_pad_start[0] and t < L and
-                  seq_idx[0, t] != designer.vocab.padding_idx):
-                vL_pad_start[0] += 1
-            elif (t == vL_pad_start[0] - 1 and t >= 0 and
-                  seq_idx[0, t] == designer.vocab.padding_idx):
-                vL_pad_start[0] -= 1
-            else:
-                pass
-            # debug - end
 
         curr_step += 1
         # debug

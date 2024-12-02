@@ -147,7 +147,7 @@ class Designer:
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
-        from pad_mask_tokens_dataset import MaskTokensDataset
+        from hyphen_mask_tokens_dataset import MaskTokensDataset
         ds = MaskTokensDataset(
             #dataset=list(set(df['VH_aa'])),
             #dataset=list(set(df['VL_aa'])),
@@ -161,7 +161,7 @@ class Designer:
             leave_unmasked_prob=0.1,
             random_token_prob=0.1,
         )
-        num_epochs = 512
+        num_epochs = 512 * 3
         batch_size = 1
         grad_acc = 16
         train_dataloader = torch.utils.data.DataLoader(ds,
@@ -209,14 +209,14 @@ class Designer:
                 if (idx + 1) % grad_acc == 0:
                     optimizer.step()
                     optimizer.zero_grad()
-
-        optimizer.zero_grad()
-        # Save lora - start
-        adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
-        #print(adapter_state_dict)
-        logger.info(os.getcwd())
-        torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-pad.pt'.format(num_epochs))
-        # Save lora - end
+            if (e + 1) % 512 == 0:
+                optimizer.zero_grad()
+                # Save lora - start
+                adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+                #print(adapter_state_dict)
+                logger.info(os.getcwd())
+                torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-hyphen.pt'.format(e + 1))
+                # Save lora - end
 
         #logger.info(f'Final designed sequences:')
         #for seq in self.decode(self.x_seqs):

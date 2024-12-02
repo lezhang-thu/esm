@@ -118,15 +118,17 @@ class MultiheadAttention(nn.Module):
         q, k, v = x
 
         src_len = k.size(2)
-        assert key_padding_mask.size(0) == bsz
-        assert key_padding_mask.size(1) == src_len
+        if key_padding_mask is not None:
+            assert key_padding_mask.size(0) == bsz
+            assert key_padding_mask.size(1) == src_len
         if self.rot_emb:
             q, k = self.rot_emb(q, k)
         attn = torch.nn.functional.scaled_dot_product_attention(
             q,
             k,
             v,
-            attn_mask=key_padding_mask.unsqueeze(1).unsqueeze(2).logical_not(),
+            attn_mask=key_padding_mask.unsqueeze(1).unsqueeze(2).logical_not()
+            if key_padding_mask else None,
             dropout_p=self.dropout if self.training else 0.0,
             scale=self.scaling,
         )

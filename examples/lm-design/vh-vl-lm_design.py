@@ -75,8 +75,10 @@ class Designer:
                                       (not AA in self.cfg.suppress_AA)))
 
         self._init_models()
-        VH_VL_SIZE = 298 
-        self.L = VH_VL_SIZE
+        # debug
+        self.vh_max_len = 133
+        self.vL_max_len = 122
+        self.L = self.vh_max_len + self.vL_max_len
 
         set_rng_seeds(self.seed)
         self.schedulers = {}  # reset schedulers
@@ -113,7 +115,7 @@ class Designer:
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
             torch.load(os.path.join('..', '..', '..',
-                                    'adapter_512-VH-VL_aa.pt'),
+                                    'adapter_512-VH-VL_aa-hyphen.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -158,23 +160,22 @@ class Designer:
         #x = ["<mask>"] * self.L
         x_vh = 'EVQLVESGGGLIQPGGSLRLSCAASGFIVSRNYMNWVRQAPGKGLEWVALIYSGGSTFYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARDLVVYGLDYWGQGTLVTVSS'
         x_vl = 'AIQLTQSPSSLSASVGDRVTITCRASQGISSHLAWYQQKPGKAPKLLIFAASTLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQHLNSNPPITFGQGTRLEIK'
-        x_seq = []
+        start_seq = list(x_vh + x_vl)
+        x = ['-'] * (self.vh_max_len + self.vL_max_len)
+        x[:len(x_vh)] = start_seq[:len(x_vh)]
+        x[self.vh_max_len:self.vh_max_len + len(x_vl)] = start_seq[len(x_vh):]
 
+        x_seq = []
         import random
-        for _ in list(x_vh + x_vl):
-            if random.random() < .0:
+        for _ in x:
+            #if random.random() < .0:
             #if random.random() < 0.5:
-            #if random.random() < 0.2:
+            if random.random() < 0.2:
                 x_seq.append('<mask>')
             else:
                 x_seq.append(_)
-        VH_VL_SIZE = 298 
-        half = VH_VL_SIZE // 2
-        x = ['<pad>'] * VH_VL_SIZE
-        x[:len(x_vh)] = x_seq[:len(x_vh)]
-        x[half:half + len(x_vl)] = x_seq[len(x_vh):]
 
-        self.x_seqs = self.encode([x], onehot=True)
+        self.x_seqs = self.encode([x_seq], onehot=True)
         assert self.x_seqs.shape == (self.B, self.L, K)
         return
         #bt = torch.from_numpy(
@@ -203,7 +204,10 @@ class Designer:
     ):
         #return lm_marginal(self.antibody, x_seqs, mask=None)
         # VERY IMPORTANT FOR **mask**
-        return lm_marginal(self.antibody, x_seqs, mask=x_seqs.argmax(-1, keepdim=True) != self.vocab.padding_idx)
+        return lm_marginal(self.antibody,
+                           x_seqs,
+                           mask=x_seqs.argmax(-1, keepdim=True)
+                           != self.vocab.padding_idx)
 
     def calc_mlm(
         self,
