@@ -128,7 +128,7 @@ class MultiheadAttention(nn.Module):
             k,
             v,
             attn_mask=key_padding_mask.unsqueeze(1).unsqueeze(2).logical_not()
-            if key_padding_mask else None,
+            if key_padding_mask is not None else None,
             dropout_p=self.dropout if self.training else 0.0,
             scale=self.scaling,
         )
