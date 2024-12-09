@@ -113,14 +113,14 @@ class Designer:
         self.LM, _ = esm2_t33_650M_UR50D(use_lora=True)
 
         # debug - start
-        lora_missing, lora_unexpected = self.LM.load_state_dict(
-            torch.load(os.path.join('..', '..', '..',
-                                    'adapter_512-VH-VL_aa.pt'),
-                       map_location="cpu",
-                       weights_only=True),
-            strict=False)
-        assert all('lora' not in x for x in lora_missing)
-        assert len(lora_unexpected) == 0
+        #lora_missing, lora_unexpected = self.LM.load_state_dict(
+        #    torch.load(os.path.join('..', '..', '..',
+        #                            'adapter_512-VH-VL_aa.pt'),
+        #               map_location="cpu",
+        #               weights_only=True),
+        #    strict=False)
+        #assert all('lora' not in x for x in lora_missing)
+        #assert len(lora_unexpected) == 0
         # debug - end
 
         # 4. Common model settings
@@ -143,11 +143,11 @@ class Designer:
 
         # Read the CSV file
         df = pd.read_csv(
-            '/home/ubuntu/lezhang.thu/biology-research/covid/esm/examples/lm-design/antibody9_16.csv'
+            '/home/zhaoxin/esm/examples/lm-design/antibody9_16.csv'
         )
 
         # Get the column 'VH_aa' and convert it to a set of unique values
-        from hyphen_mask_tokens_dataset import MaskTokensDataset
+        from llm_mask_tokens_dataset import MaskTokensDataset
         ds = MaskTokensDataset(
             #dataset=list(set(df['VH_aa'])),
             #dataset=list(set(df['VL_aa'])),
@@ -161,7 +161,7 @@ class Designer:
             leave_unmasked_prob=0.1,
             random_token_prob=0.1,
         )
-        num_epochs = 512 * 3
+        num_epochs = 512 * 10
         batch_size = 1
         grad_acc = 16
         train_dataloader = torch.utils.data.DataLoader(ds,
@@ -209,13 +209,13 @@ class Designer:
                 if (idx + 1) % grad_acc == 0:
                     optimizer.step()
                     optimizer.zero_grad()
-            if (e + 1) % 512 == 0:
+            if (e + 1) % (512 * 2) == 0:
                 optimizer.zero_grad()
                 # Save lora - start
                 adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
                 #print(adapter_state_dict)
                 logger.info(os.getcwd())
-                torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-hyphen.pt'.format(e + 1))
+                torch.save(adapter_state_dict, 'adapter_{}-VH-VL_aa-llm.pt'.format(e + 1))
                 # Save lora - end
 
         #logger.info(f'Final designed sequences:')
