@@ -115,7 +115,7 @@ class Designer:
         self.antibody, _ = esm2_t33_650M_UR50D(use_lora=True)
         lora_missing, lora_unexpected = self.antibody.load_state_dict(
             torch.load(os.path.join('..', '..', '..',
-                                    'adapter_1024-VH-VL_aa-llm.pt'),
+                                    'adapter_5120-VH-VL_aa-llm.pt'),
                        map_location="cpu",
                        weights_only=True),
             strict=False)
@@ -155,6 +155,10 @@ class Designer:
         x_seq = ['<mask>']
         self.x_seqs = self.encode([x_seq], onehot=True)
         assert self.x_seqs.shape == (self.B, 1, len(self.vocab))
+        # debug - start
+        self.vh_prefix = ""
+        self.vL_prefix = ""
+        # debug - end
 
     def calc_mlm(
         self,
@@ -166,27 +170,45 @@ class Designer:
         """
         Main run-loop for the Designer. Runs a relevant design procedure from the config.
         """
-        import copy
         logger.info(f'Designing sequence for task: {self.cfg.task}')
         design_cfg = self.cfg.tasks[self.cfg.task]
 
-        mask_token = copy.deepcopy(self.x_seqs)
-        for idx in range(self.vh_max_len + self.vL_max_len):
-            with torch.no_grad():
-                x = self.calc_mlm(self.x_seqs)['logits']
-                probs = F.softmax(x[:, -1, :], -1)
-                logger.info('idx: {: <5}, probs: {}'.format(idx, probs))
-                w_n = torch.multinomial(probs, num_samples=1).squeeze(-1)
-                self.x_seqs[:, -1, :] = F.one_hot(w_n, len(self.vocab)).float()
-                for seq in self.decode(self.x_seqs):
-                    logger.info("{: <10}: {}".format(idx, seq))
+        mask_token = self.encode([['<mask>']], onehot=True)
+        for _ in range(200):
+            self.init_sequences(1)
+            for idx in range(self.vh_max_len + self.vL_max_len):
+                with torch.no_grad():
+                    if idx < self.vh_max_len and idx < len(self.vh_prefix):
+                        w_n = torch.tensor(
+                            [self.vocab.get_idx(self.vh_prefix[idx])],
+                            dtype=torch.long,
+                            device=self.x_seqs.device)
+                    elif idx >= self.vh_max_len and idx - self.vh_max_len < len(
+                            self.vL_prefix):
+                        w_n = torch.tensor([
+                            self.vocab.get_idx(
+                                self.vL_prefix[idx - self.vh_max_len])
+                        ],
+                                           dtype=torch.long,
+                                           device=self.x_seqs.device)
+                    else:
+                        x = self.calc_mlm(self.x_seqs)['logits']
+                        probs = F.softmax(x[:, -1, :], -1)
+                        #logger.info('idx: {: <5}, probs: {}'.format(idx, probs))
+                        w_n = torch.multinomial(probs,
+                                                num_samples=1).squeeze(-1)
+                    self.x_seqs[:, -1, :] = F.one_hot(w_n,
+                                                      len(self.vocab)).float()
+                    for seq in self.decode(self.x_seqs):
+                        pass
+                        #logger.info("{: <10}: {}".format(idx, seq))
 
-                if idx < self.vh_max_len + self.vL_max_len - 1:
-                    self.x_seqs = torch.cat([self.x_seqs, mask_token], 1)
-        logger.info(f'Final designed sequences:')
-        for seq in self.decode(self.x_seqs):
-            logger.info(seq)
-        self.output_seq = self.decode(self.x_seqs)[0]
+                    if idx < self.vh_max_len + self.vL_max_len - 1:
+                        self.x_seqs = torch.cat([self.x_seqs, mask_token], 1)
+            logger.info(f'Final designed sequences:')
+            for seq in self.decode(self.x_seqs):
+                logger.info(seq)
+            self.output_seq = self.decode(self.x_seqs)[0]
 
 
 @hydra.main(config_path="conf/", config_name="x-config")
